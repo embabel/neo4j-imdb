@@ -15,5 +15,9 @@ public interface Repository {
      */
     void query(String query);
 
+    void update(String query, Map<String, Object> params);
+
     void batchUpdate(String query, List<Map<String, Object>> batch);
+
+    List<Map<String, Object>> queryForMap(String query, Map<String, Object> params);
 }
