@@ -1,6 +1,16 @@
 package science.aist.neo4j.imdb;
 
 import me.tongfei.progressbar.ProgressBar;
+import org.springframework.core.io.ClassPathResource;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * <p>The Neo4j Importer</p>
@@ -65,5 +75,61 @@ public class Importer implements Runnable {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+   public void addRatings(int minVotes) throws IOException  {
+
+       var classPathResource = new ClassPathResource("title.ratings.tsv");
+
+       try (var br = new BufferedReader(new InputStreamReader(classPathResource.getInputStream()))) {
+            String line;
+            List<Map<String, Object>> batch = new ArrayList<>();
+            int batchSize = 1000; // Process 1000 movies at a time
+            int linesRead = 0;
+            while ((line = br.readLine()) != null) {
+                linesRead++;
+                if (linesRead == 1) {
+                    // Skip the header
+                    continue;
+                }
+                String[] parts = line.trim().split("\t");
+                if (parts.length == 3) {
+                    String movieId = parts[0];
+                    double rating = Double.parseDouble(parts[1]);
+                    int votes = Integer.parseInt(parts[2]);
+
+                    if (votes >= minVotes) {
+                        Map<String, Object> params = new HashMap<>();
+                        params.put("movieId", movieId);
+                        params.put("rating", rating);
+                        params.put("votes", votes);
+                        batch.add(params);
+
+                        if (batch.size() >= batchSize) {
+                            updateBatch( batch, linesRead);
+                            batch.clear();
+                        }
+                    }
+                }
+            }
+
+            // Update any remaining movies in the final batch
+            if (!batch.isEmpty()) {
+                updateBatch( batch, linesRead);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void updateBatch(List<Map<String, Object>> batch, int linesRead) {
+        System.out.println("Updating batch of " + batch.size() + " movies. Total movies processed: " + linesRead);
+        var query =
+                    "UNWIND $batch AS movie " +
+                            "MATCH (m:Movie {id: movie.movieId}) " +
+                            "SET m.rating = movie.rating, " +
+                            "    m.votes = movie.votes";
+
+            repository.batchUpdate(query, batch);
     }
 }
