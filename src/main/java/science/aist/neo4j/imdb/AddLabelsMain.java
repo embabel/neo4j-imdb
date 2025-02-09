@@ -2,11 +2,13 @@ package science.aist.neo4j.imdb;
 
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
-public class AddOmdbMain {
+import java.io.IOException;
 
-    public static void main(String[] args) {
+public class AddLabelsMain {
+
+    public static void main(String[] args) throws IOException {
         try (ClassPathXmlApplicationContext appContext = new ClassPathXmlApplicationContext("neo4j-config.xml")) {
-            appContext.getBean("importer", Importer.class).addOmdb(50000, 99);
+            appContext.getBean("importer", Importer.class).runCypher();
         }
     }
 }

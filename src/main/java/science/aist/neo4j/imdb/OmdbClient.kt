@@ -5,7 +5,7 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.web.client.RestClient
 
 class OmdbClient(
-    private val apiKey: String = System.getenv("OMDB_API_KEY"),
+    private val apiKey: String = System.getenv("OMDB_API_KEY") ?: throw RuntimeException("OMDB_API_KEY not set")
 ) {
 
     fun omdbRestClient(): RestClient {
